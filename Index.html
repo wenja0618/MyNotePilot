@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <meta charset="UTF-8">
+    <title>MyNotePilot – AI notes, summaries &amp; calendar</title>
+    <style>
+      body {
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        margin: 2rem;
+        color: #111827;
+        background: #f9fafb;
+      }
+      h1 {
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+      }
+      h2 {
+        font-size: 1.1rem;
+        margin-top: 1.5rem;
+        margin-bottom: 0.5rem;
+      }
+      .card {
+        background: #ffffff;
+        border-radius: 0.75rem;
+        padding: 1.25rem 1.5rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.08),
+                    0 4px 6px -4px rgba(15, 23, 42, 0.06);
+      }
+      .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.75rem;
+      }
+      label {
+        font-weight: 500;
+      }
+      input[type="file"] {
+        margin-top: 0.5rem;
+      }
+      button {
+        background-color: #2563eb;
+        color: white;
+        border: none;
+        border-radius: 0.5rem;
+        padding: 0.5rem 1rem;
+        font-size: 0.95rem;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+      }
+      button[disabled] {
+        opacity: 0.6;
+        cursor: default;
+      }
+      button.secondary {
+        background-color: #e5e7eb;
+        color: #111827;
+      }
+      .status {
+        font-size: 0.85rem;
+        color: #4b5563;
+        margin-left: 0.75rem;
+      }
+      textarea {
+        width: 100%;
+        min-height: 120px;
+        resize: vertical;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        font-size: 0.9rem;
+        padding: 0.5rem 0.75rem;
+        border-radius: 0.5rem;
+        border: 1px solid #d1d5db;
+        box-sizing: border-box;
+      }
+      .columns {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+      }
+      .column {
+        flex: 1 1 260px;
+      }
+      ul.item-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        max-height: 220px;
+        overflow-y: auto;
+      }
+      ul.item-list li {
+        padding: 0.35rem 0.15rem;
+        border-bottom: 1px solid #e5e7eb;
+        font-size: 0.9rem;
+        display: flex;
+        align-items: flex-start;
+        gap: 0.35rem;
+      }
+      ul.item-list li:last-child {
+        border-bottom: none;
+      }
+      .item-main {
+        font-weight: 500;
+      }
+      .item-meta {
+        display: block;
+        font-size: 0.8rem;
+        color: #6b7280;
+      }
+      .error {
+        color: #b91c1c;
+        font-size: 0.9rem;
+        margin-top: 0.5rem;
+      }
+      .success {
+        color: #166534;
+        font-size: 0.9rem;
+        margin-top: 0.5rem;
+      }
+      .pill {
+        display: inline-block;
+        padding: 0.1rem 0.45rem;
+        border-radius: 999px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        background: #eff6ff;
+        color: #1d4ed8;
+        margin-left: 0.4rem;
+      }
+      .conflict-row {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        padding: 0.45rem 0.15rem;
+      }
+      .conflict-label {
+        display: inline-block;
+        font-size: 0.7rem;
+        font-weight: 600;
+        padding: 0.1rem 0.4rem;
+        border-radius: 999px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .conflict-label.new {
+        background: #eff6ff;
+        color: #1d4ed8;
+      }
+      .conflict-label.existing {
+        background: #fef2f2;
+        color: #b91c1c;
+      }
+      .conflict-block {
+        border-radius: 0.5rem;
+        padding: 0.6rem 0.75rem;
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <h1>MyNotePilot</h1>
+          <div style="font-size:0.85rem;color:#6b7280;">
+            MyNotePilot helps you summarize documents and manage your schedule with AI.
+          </div>
+        </div>
+      </div>
+
+      <label for="fileInput">Documents</label>
+      <input id="fileInput" type="file" multiple />
+      <div style="font-size:0.8rem;color:#6b7280;margin-top:0.25rem;">
+        You can also upload a ZIP or a folder export; all files will be analyzed together.
+      </div>
+
+      <div style="margin-top:0.75rem;display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;">
+        <div>
+          <label for="summaryDepth" style="font-weight:500;">Summary detail</label>
+          <select id="summaryDepth" style="margin-left:0.5rem;padding:0.25rem 0.5rem;border-radius:0.375rem;border:1px solid #d1d5db;font-size:0.85rem;">
+            <option value="very_concise">Very concise</option>
+            <option value="short" selected>Short</option>
+            <option value="full">Full</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="margin-top:1rem;display:flex;align-items:center;gap:0.75rem;">
+        <button id="analyzeBtn">
+          <span id="analyzeBtnLabel">Analyze documents</span>
+        </button>
+        <span id="analyzeStatus" class="status"></span>
+      </div>
+      <div id="analyzeError" class="error" style="display:none;"></div>
+    </div>
+
+    <div class="card" id="resultsCard" style="display:none;">
+      <div class="card-header">
+        <h2>Summary &amp; extracted schedule</h2>
+        <span class="pill" id="fileCountPill"></span>
+      </div>
+
+      <h3 style="font-size:0.95rem;margin-top:0;margin-bottom:0.35rem;">Summary</h3>
+      <textarea id="summaryOutput"></textarea>
+
+      <div class="columns" style="margin-top:1rem;">
+        <div class="column">
+          <h3 style="font-size:0.95rem;margin-top:0;margin-bottom:0.35rem;">Events (tests, meetings, deadlines)</h3>
+          <ul id="eventsList" class="item-list"></ul>
+        </div>
+        <div class="column">
+          <h3 style="font-size:0.95rem;margin-top:0;margin-bottom:0.35rem;">Tasks / to‑dos</h3>
+          <ul id="tasksList" class="item-list"></ul>
+          <div style="font-size:0.8rem;color:#6b7280;margin-top:0.35rem;">
+            Optional: turn tasks into multiple auto-planned study/work blocks before the due date.
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:1rem;display:flex;align-items:center;gap:0.75rem;">
+        <button id="createBtn" disabled>
+          <span id="createBtnLabel">Add selected to Google Calendar</span>
+        </button>
+        <span id="createStatus" class="status"></span>
+      </div>
+      <div id="createMessage" class="success" style="display:none;"></div>
+      <div id="createError" class="error" style="display:none;"></div>
+    </div>
+
+    <script>
+      const fileInput = document.getElementById('fileInput');
+      const analyzeBtn = document.getElementById('analyzeBtn');
+      const analyzeBtnLabel = document.getElementById('analyzeBtnLabel');
+      const analyzeStatus = document.getElementById('analyzeStatus');
+      const analyzeError = document.getElementById('analyzeError');
+      const summaryDepthSelect = document.getElementById('summaryDepth');
+
+      const resultsCard = document.getElementById('resultsCard');
+      const fileCountPill = document.getElementById('fileCountPill');
+      const summaryOutput = document.getElementById('summaryOutput');
+      const eventsList = document.getElementById('eventsList');
+      const tasksList = document.getElementById('tasksList');
+
+      // Conflicts card (for overlapping events)
+      const conflictsCard = document.createElement('div');
+      conflictsCard.className = 'card';
+      conflictsCard.id = 'conflictsCard';
+      conflictsCard.style.display = 'none';
+      conflictsCard.innerHTML = `
+        <div class="card-header">
+          <h2>Conflicting events in your calendar</h2>
+        </div>
+        <div style="font-size:0.85rem;color:#6b7280;margin-bottom:0.5rem;">
+          These are events from your documents that overlap with events already on your Google Calendar.
+        </div>
+        <div id="conflictsContent" style="font-size:0.9rem;color:#374151;"></div>
+      `;
+      document.body.insertBefore(conflictsCard, document.body.lastElementChild);
+
+      const createBtn = document.getElementById('createBtn');
+      const createBtnLabel = document.getElementById('createBtnLabel');
+      const createStatus = document.getElementById('createStatus');
+      const createMessage = document.getElementById('createMessage');
+      const createError = document.getElementById('createError');
+
+      let latestAnalysis = null;
+
+      function setAnalyzeLoading(isLoading) {
+        analyzeBtn.disabled = isLoading;
+        analyzeBtnLabel.textContent = isLoading ? 'Analyzing…' : 'Analyze documents';
+        analyzeStatus.textContent = isLoading ? 'This can take a moment for large files.' : '';
+        analyzeError.style.display = 'none';
+        analyzeError.textContent = '';
+      }
+
+      function setCreateLoading(isLoading) {
+        createBtn.disabled = isLoading;
+        createBtnLabel.textContent = isLoading ? 'Creating in Calendar…' : 'Add selected to Google Calendar';
+        createStatus.textContent = isLoading ? 'Creating events and tasks…' : '';
+        createError.style.display = 'none';
+        createError.textContent = '';
+        createMessage.style.display = 'none';
+        createMessage.textContent = '';
+      }
+
+      function fileToPayload(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const result = reader.result;
+            const base64 = String(result).split(',')[1] || '';
+            resolve({
+              fileName: file.name,
+              mimeType: file.type || 'application/octet-stream',
+              contentBase64: base64
+            });
+          };
+          reader.onerror = () => reject(reader.error || new Error('Failed to read file.'));
+          reader.readAsDataURL(file);
+        });
+      }
+
+      function renderAnalysis(analysis, fileCount) {
+        latestAnalysis = analysis || { summary: '', events: [], tasks: [], overlaps: [] };
+
+        summaryOutput.value = latestAnalysis.summary || '';
+        fileCountPill.textContent = (fileCount || 0) + ' file' + (fileCount === 1 ? '' : 's');
+
+        eventsList.innerHTML = '';
+        (latestAnalysis.events || []).forEach((e, index) => {
+          const li = document.createElement('li');
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.checked = true;
+          checkbox.dataset.index = String(index);
+          checkbox.dataset.type = 'event';
+
+          const wrapper = document.createElement('div');
+          const title = document.createElement('span');
+          title.className = 'item-main';
+          title.textContent = e.title || 'Untitled event';
+
+          const meta = document.createElement('span');
+          meta.className = 'item-meta';
+          meta.textContent = [e.start, e.end, e.location].filter(Boolean).join('  •  ');
+
+          wrapper.appendChild(title);
+          if (meta.textContent) {
+            wrapper.appendChild(document.createElement('br'));
+            wrapper.appendChild(meta);
+          }
+
+          li.appendChild(checkbox);
+          li.appendChild(wrapper);
+          eventsList.appendChild(li);
+        });
+
+        tasksList.innerHTML = '';
+        (latestAnalysis.tasks || []).forEach((t, index) => {
+          const li = document.createElement('li');
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.checked = true;
+          checkbox.dataset.index = String(index);
+          checkbox.dataset.type = 'task';
+
+          const wrapper = document.createElement('div');
+          const title = document.createElement('span');
+          title.className = 'item-main';
+          title.textContent = t.title || 'Untitled task';
+
+          const meta = document.createElement('span');
+          meta.className = 'item-meta';
+          meta.textContent = [t.due, t.description].filter(Boolean).join('  •  ');
+
+          wrapper.appendChild(title);
+          if (meta.textContent) {
+            wrapper.appendChild(document.createElement('br'));
+            wrapper.appendChild(meta);
+          }
+
+          // Auto-planning controls (optional)
+          const planningRow = document.createElement('div');
+          planningRow.style.fontSize = '0.8rem';
+          planningRow.style.color = '#4b5563';
+          planningRow.style.marginTop = '0.15rem';
+
+          const autoPlanCheckbox = document.createElement('input');
+          autoPlanCheckbox.type = 'checkbox';
+          autoPlanCheckbox.className = 'auto-plan-toggle';
+          autoPlanCheckbox.dataset.index = String(index);
+
+          const autoPlanLabel = document.createElement('span');
+          autoPlanLabel.textContent = ' Auto‑plan study/work blocks';
+
+          const hoursLabel = document.createElement('span');
+          hoursLabel.textContent = ' • Total hours: ';
+
+          const hoursInput = document.createElement('input');
+          hoursInput.type = 'number';
+          hoursInput.min = '0.5';
+          hoursInput.step = '0.5';
+          hoursInput.value = t.estimatedHours != null ? String(t.estimatedHours) : '2';
+          hoursInput.className = 'auto-plan-hours';
+          hoursInput.style.width = '3rem';
+          hoursInput.style.marginLeft = '0.15rem';
+
+          planningRow.appendChild(autoPlanCheckbox);
+          planningRow.appendChild(autoPlanLabel);
+          planningRow.appendChild(hoursLabel);
+          planningRow.appendChild(hoursInput);
+
+          wrapper.appendChild(document.createElement('br'));
+          wrapper.appendChild(planningRow);
+
+          li.appendChild(checkbox);
+          li.appendChild(wrapper);
+          tasksList.appendChild(li);
+        });
+
+        resultsCard.style.display = 'block';
+        createBtn.disabled = (latestAnalysis.events || []).length === 0 && (latestAnalysis.tasks || []).length === 0;
+
+        // Render conflicts/overlaps with existing calendar events.
+        const conflictsContent = document.getElementById('conflictsContent');
+        const overlaps = (analysis && analysis.overlaps) || [];
+        if (!overlaps.length) {
+          conflictsCard.style.display = 'block';
+          conflictsContent.textContent = 'No time conflicts found between these new events and your existing calendar.';
+        } else {
+          conflictsCard.style.display = 'block';
+          const list = document.createElement('ul');
+          list.className = 'item-list';
+
+          overlaps.forEach((ov) => {
+            const li = document.createElement('li');
+            const row = document.createElement('div');
+            row.className = 'conflict-row';
+
+            // New event block
+            const newBlock = document.createElement('div');
+            newBlock.className = 'conflict-block';
+            const newLabel = document.createElement('span');
+            newLabel.className = 'conflict-label new';
+            newLabel.textContent = 'NEW EVENT FROM DOCUMENT';
+            const newTitle = document.createElement('div');
+            newTitle.className = 'item-main';
+            newTitle.textContent = ov.newEventTitle || 'Untitled event';
+            const newMeta = document.createElement('div');
+            newMeta.className = 'item-meta';
+            newMeta.textContent = [ov.newEventStart, ov.newEventEnd].filter(Boolean).join('  •  ');
+            newBlock.appendChild(newLabel);
+            newBlock.appendChild(document.createElement('br'));
+            newBlock.appendChild(newTitle);
+            newBlock.appendChild(newMeta);
+
+            row.appendChild(newBlock);
+
+            // Existing events block(s)
+            (ov.existing || []).forEach((ex) => {
+              const exBlock = document.createElement('div');
+              exBlock.className = 'conflict-block';
+              const exLabel = document.createElement('span');
+              exLabel.className = 'conflict-label existing';
+              exLabel.textContent = 'EXISTING CALENDAR EVENT';
+              const exTitle = document.createElement('div');
+              exTitle.className = 'item-main';
+              exTitle.textContent = ex.title || 'Untitled event';
+              const exMeta = document.createElement('div');
+              exMeta.className = 'item-meta';
+              exMeta.textContent = [ex.start, ex.end, ex.location].filter(Boolean).join('  •  ');
+              exBlock.appendChild(exLabel);
+              exBlock.appendChild(document.createElement('br'));
+              exBlock.appendChild(exTitle);
+              exBlock.appendChild(exMeta);
+              row.appendChild(exBlock);
+            });
+
+            li.appendChild(row);
+            list.appendChild(li);
+          });
+
+          conflictsContent.innerHTML = '';
+          conflictsContent.appendChild(list);
+        }
+      }
+
+      analyzeBtn.addEventListener('click', () => {
+        const files = Array.from(fileInput.files || []);
+        if (!files.length) {
+          analyzeError.textContent = 'Please choose at least one document to analyze.';
+          analyzeError.style.display = 'block';
+          return;
+        }
+
+        setAnalyzeLoading(true);
+
+        const summaryDetail = summaryDepthSelect.value || 'short';
+
+        Promise.all(files.map(fileToPayload))
+          .then((filePayloads) => {
+            google.script.run
+              .withSuccessHandler((analysis) => {
+                setAnalyzeLoading(false);
+                renderAnalysis(analysis, filePayloads.length);
+              })
+              .withFailureHandler((err) => {
+                setAnalyzeLoading(false);
+                analyzeError.textContent = (err && err.message) || String(err) || 'Analysis failed.';
+                analyzeError.style.display = 'block';
+              })
+              .analyzeFilesFromClient({ files: filePayloads, summaryDetail: summaryDetail });
+          })
+          .catch((err) => {
+            setAnalyzeLoading(false);
+            analyzeError.textContent = (err && err.message) || String(err) || 'Failed to read files.';
+            analyzeError.style.display = 'block';
+          });
+      });
+
+      createBtn.addEventListener('click', () => {
+        if (!latestAnalysis) {
+          return;
+        }
+
+        const selectedEvents = [];
+        const selectedTasks = [];
+
+        Array.from(eventsList.querySelectorAll('input[type="checkbox"]')).forEach((cb) => {
+          if (cb.checked) {
+            const index = Number(cb.dataset.index || '0');
+            const item = (latestAnalysis.events || [])[index];
+            if (item) {
+              selectedEvents.push(item);
+            }
+          }
+        });
+
+        Array.from(tasksList.querySelectorAll('input[type="checkbox"][data-type="task"]')).forEach((cb) => {
+          if (cb.checked) {
+            const index = Number(cb.dataset.index || '0');
+            const item = (latestAnalysis.tasks || [])[index];
+            if (item) {
+              // Attach optional auto-planning instructions for this task
+              const li = cb.parentElement;
+              const autoPlanToggle = li.querySelector('.auto-plan-toggle');
+              const hoursInput = li.querySelector('.auto-plan-hours');
+              if (autoPlanToggle && autoPlanToggle.checked) {
+                item.autoPlan = true;
+                item.estimatedHours = hoursInput ? Number(hoursInput.value || '0') : 0;
+                // Simple defaults: 1-hour blocks, start a week before due date
+                item.blockLengthMinutes = 60;
+                item.startWindowDaysBeforeDue = 7;
+              }
+              selectedTasks.push(item);
+            }
+          }
+        });
+
+        if (!selectedEvents.length && !selectedTasks.length) {
+          createError.textContent = 'Select at least one event or task to add to Calendar.';
+          createError.style.display = 'block';
+          return;
+        }
+
+        setCreateLoading(true);
+
+        google.script.run
+          .withSuccessHandler((result) => {
+            setCreateLoading(false);
+            const evCount = result && typeof result.createdEvents === 'number' ? result.createdEvents : 0;
+            const taskCount = result && typeof result.createdTasks === 'number' ? result.createdTasks : 0;
+            const plannedBlocks = result && typeof result.plannedBlocks === 'number' ? result.plannedBlocks : 0;
+            let msg = 'Created ' + evCount + ' event(s) and ' + taskCount + ' task(s)';
+            if (plannedBlocks > 0) {
+              msg += ' plus ' + plannedBlocks + ' auto‑planned study/work block(s)';
+            }
+            msg += ' in your Google Calendar.';
+            createMessage.textContent = msg;
+            createMessage.style.display = 'block';
+          })
+          .withFailureHandler((err) => {
+            setCreateLoading(false);
+            createError.textContent = (err && err.message) || String(err) || 'Failed to create calendar entries.';
+            createError.style.display = 'block';
+          })
+          .createCalendarFromClient({
+            events: selectedEvents,
+            tasks: selectedTasks
+          });
+      });
+    </script>
+  </body>
+</html>
+
